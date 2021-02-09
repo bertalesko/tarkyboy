@@ -1,9 +1,5 @@
-import time
-import socket
-from struct import *
-import datetime
+import dpkt
 import pcapy
-import sys
 
 def getInterface():
     ifs = pcapy.findalldevs()
@@ -21,27 +17,26 @@ def getInterface():
     return ifs[idx]
 
 dev = getInterface()
-index = 0
-cap = pcapy.open_live(dev,
-                      65536,  # to ensure capturing all of the
-                      1,  # promiscious mode on
-                      0)  # time out
-print("Listening on %s: net=%s, mask=%s, linktype=%d" % (dev, cap.getnet(),
-                                                         cap.getmask(),
-                                                         cap.datalink()))
-print("capturing data...")
-dumper = cap.dump_open('data_p.txt')
-while True:
-    (header, packet) = cap.next()
-    if ((len(packet) == 542) and
-            (packet[26] == 169) and
-            (packet[27] == 254) and
-            (packet[29] == 15)):
-        index += 1
-        print(index)
-        dumper.dump(header, packet)
 
 
+cap=pcapy.open_live('eth0',100000,1,0)
+(header,payload)=cap.next()
 
+while header:
+    eth=dpkt.ethernet.Ethernet(str(payload))
+
+    # Check whether IP packets: to consider only IP packets 
+    if eth.type!=dpkt.ethernet.ETH_TYPE_IP:
+            continue
+            # Skip if it is not an IP packet
+    ip=eth.data
+    if ip.p==dpkt.ip.IP_PROTO_TCP: # Check for TCP packets
+           TCP=ip.data 
+           # ADD TCP packets Analysis code here
+    elif ip.p==dpkt.ip.IP_PROTO_UDP: # Check for UDP packets
+           UDP=ip.data 
+           # UDP packets Analysis code here
+
+    (header,payload)=cap.next()
 
 
